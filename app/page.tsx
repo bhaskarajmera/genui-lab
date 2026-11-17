@@ -9,6 +9,7 @@ import type { ChatMessage } from "@/lib/types";
 import { WeatherCard } from "@/components/ui/weather-card";
 import { StatCard } from "@/components/ui/stat-card";
 import { DataTable } from "@/components/ui/dataTable";
+import { DashboardCard } from "@/components/ui/dashboard";
 
 import {
   Conversation,
@@ -28,6 +29,7 @@ const registry: Record<string, React.ComponentType<any>> = {
   "tool-getWeather": WeatherCard,
   "tool-showTable": DataTable,
   "tool-showStat": StatCard,
+  "tool-renderDashboard": DashboardCard,
 };
 
 export function PartRenderer({ part }: { part: any }) {
@@ -47,7 +49,7 @@ function ChatContent() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
-  
+
   // Render nothing or a skeleton on the server/first render pass
   if (!isMounted) {
     return <div className="h-10 border rounded-md bg-muted/20 animate-pulse" />;

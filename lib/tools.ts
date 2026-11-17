@@ -1,10 +1,15 @@
 import { tool } from "ai";
 import { z } from "zod";
 
+// Weather Schema
 export const getWeather = tool({
   description: "Get current weather and a 7-day forecast for a city",
   inputSchema: z.object({
-    city: z.string().describe("The full name of the city for which the user wants weather information."),
+    city: z
+      .string()
+      .describe(
+        "The full name of the city for which the user wants weather information.",
+      ),
     lat: z.number().describe("The geographic latitude of the requested city."),
     lon: z.number().describe("The geographic longitude of the requested city."),
   }),
@@ -20,21 +25,75 @@ export const getWeather = tool({
   },
 });
 
+// Table Schema
 export const showTable = tool({
   description: "Display a data table with defined columns and rows.",
   inputSchema: z.object({
     columns: z.array(z.string()).describe("Array of column header titles"),
-    rows: z.array(z.array(z.string())).describe("2D array representing rows of string values"),
+    rows: z
+      .array(z.array(z.string()))
+      .describe("2D array representing rows of string values"),
   }),
   execute: async ({ columns, rows }) => ({ columns, rows }),
 });
 
+// Stat Schema
 export const showStat = tool({
-  description: "Display a key performance metric stat card with a label, value, and optional delta.",
+  description:
+    "Display a key performance metric stat card with a label, value, and optional delta.",
   inputSchema: z.object({
     label: z.string().describe("The title/label of the metric"),
     value: z.string().describe("The main numeric or text value"),
-    delta: z.string().optional().describe('Trend indicator or percentage change, e.g. "+12%" or "-3%"'),
+    delta: z
+      .string()
+      .optional()
+      .describe('Trend indicator or percentage change, e.g. "+12%" or "-3%"'),
   }),
   execute: async ({ label, value, delta }) => ({ label, value, delta }),
+});
+
+// Dashboard Widget Schema
+const StatWidget = z.object({
+  type: z.literal("stat"),
+  label: z.string().describe("Metric title"),
+  value: z.string().describe("Current metric value"),
+  delta: z.string().optional().describe("Percentage change or trend"),
+});
+
+const TextWidget = z.object({
+  type: z.enum(["text", "markdown"]).describe("Content type"),
+  markdown: z.string().describe("Markdown formatted text content"),
+});
+
+const TableWidget = z.object({
+  type: z.literal("table"),
+  columns: z.array(z.string()).describe("Table column headers"),
+  rows: z.array(z.array(z.string())).describe("2D array of row string values"),
+});
+
+// Automatically flattens if the model nests properties inside a 'data' object
+const RawWidget = z.union([StatWidget, TextWidget, TableWidget]);
+
+export const Widget = z.preprocess((val: any) => {
+  if (
+    val &&
+    typeof val === "object" &&
+    val.data &&
+    typeof val.data === "object"
+  ) {
+    return {
+      type: val.type,
+      ...val.data,
+    };
+  }
+  return val;
+}, RawWidget);
+
+export const renderDashboard = tool({
+  description: "Render a structured dashboard layout with multiple widgets.",
+  inputSchema: z.object({
+    title: z.string().describe("Main dashboard title"),
+    widgets: z.array(Widget).max(8).describe("Array of dashboard widgets"),
+  }),
+  execute: async (spec) => spec,
 });
