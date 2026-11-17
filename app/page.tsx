@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Streamdown } from "streamdown";
 
 import type { ChatMessage } from "@/lib/types";
@@ -38,10 +38,20 @@ export function PartRenderer({ part }: { part: any }) {
   if (part.state === "output-available") return <C {...part.output} />;
   return <C {...(part.input ?? {})} loading />; // partial args while streaming
 }
-
 function ChatContent() {
   const { messages, sendMessage, status, stop } = useChat<ChatMessage>();
   const [input, setInput] = useState("");
+
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  
+  // Render nothing or a skeleton on the server/first render pass
+  if (!isMounted) {
+    return <div className="h-10 border rounded-md bg-muted/20 animate-pulse" />;
+  }
 
   return (
     <main className="mx-auto max-w-3xl p-6 flex flex-col h-screen justify-between">
@@ -70,6 +80,7 @@ function ChatContent() {
           className="flex gap-2"
         >
           <input
+            suppressHydrationWarning
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
