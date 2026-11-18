@@ -97,3 +97,36 @@ export const renderDashboard = tool({
   }),
   execute: async (spec) => spec,
 });
+
+// Send Email Schema
+export const sendEmail = tool({
+  description: "Send an email to a recipient with a subject and body.",
+  inputSchema: z.object({
+    to: z.string().email().describe("Recipient email address"),
+    subject: z.string().describe("Email subject line"),
+    body: z.string().describe("Email body content"),
+  }),
+  needsApproval: true,
+  execute: async ({ to, subject, body }) => {
+    // Simulated email delivery logic
+    console.log(`Sending email to ${to}: ${subject}`);
+    return { sent: true, recipient: to, timestamp: new Date().toISOString() };
+  },
+});
+
+// Ask User Schema
+export const askUser = tool({
+  description: "Ask the user to pick an option from a list of choices.",
+  inputSchema: z.object({
+    question: z.string().describe("The question to ask the user"),
+    options: z.array(z.string()).describe("List of clickable choices"),
+  }),
+  // No execute function: pauses execution so the client can supply the output
+});
+
+// Get Local Theme Schema
+export const getLocalTheme = tool({
+  description:
+    "Get the current theme preference stored in the browser's localStorage.",
+  inputSchema: z.object({}), // No input parameters required from the model
+});

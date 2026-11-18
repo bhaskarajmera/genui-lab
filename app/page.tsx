@@ -1,6 +1,10 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import {
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from "ai";
 import { Suspense, useEffect, useState } from "react";
 import { Streamdown } from "streamdown";
 
@@ -10,6 +14,7 @@ import { WeatherCard } from "@/components/ui/weather-card";
 import { StatCard } from "@/components/ui/stat-card";
 import { DataTable } from "@/components/ui/dataTable";
 import { DashboardCard } from "@/components/ui/dashboard";
+import { ApprovalCard } from "@/components/ui/approval-card";
 
 import {
   Conversation,
@@ -32,25 +37,118 @@ const registry: Record<string, React.ComponentType<any>> = {
   "tool-renderDashboard": DashboardCard,
 };
 
-export function PartRenderer({ part }: { part: any }) {
+interface PartRendererProps {
+  part: any;
+  addToolApprovalResponse: (response: {
+    id: string;
+    approved: boolean;
+  }) => void;
+  addToolOutput: (output: {
+    tool: string;
+    toolCallId: string;
+    output: any;
+  }) => void;
+}
+
+export function PartRenderer({
+  part,
+  addToolApprovalResponse,
+  addToolOutput,
+}: PartRendererProps) {
   if (part.type === "text") return <Streamdown>{part.text}</Streamdown>;
+
+  // 1. Handle tool approval workflows (e.g., sendEmail with needsApproval: true)
+  if (part.type === "tool-sendEmail" || part.needsApproval) {
+    if (part.state === "approval-requested") {
+      return (
+        <ApprovalCard
+          args={part.input ?? {}}
+          onApprove={() =>
+            addToolApprovalResponse({ id: part.approval.id, approved: true })
+          }
+          onDeny={() =>
+            addToolApprovalResponse({ id: part.approval.id, approved: false })
+          }
+        />
+      );
+    }
+  }
+
+  // 2. Handle interactive client-side picker tools (e.g., askUser)
+  if (part.type === "tool-askUser") {
+    if (part.state === "input-available") {
+      return (
+        <div className="rounded-lg border p-4 my-2 space-y-3 bg-card">
+          <p className="font-medium text-sm">{part.input?.question}</p>
+          <div className="flex flex-wrap gap-2">
+            {part.input?.options?.map((option: string) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() =>
+                  addToolOutput({
+                    tool: "askUser",
+                    toolCallId: part.toolCallId,
+                    output: option,
+                  })
+                }
+                className="px-3 py-1.5 text-sm border rounded-md hover:bg-muted"
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    if (part.state === "output-available") {
+      return (
+        <div className="text-sm text-muted-foreground my-1">
+          Selected:{" "}
+          <span className="font-medium text-foreground">{part.output}</span>
+        </div>
+      );
+    }
+  }
+
+  // 3. Handle standard server component registry tools
   const C = registry[part.type];
   if (!C) return null;
   if (part.state === "output-error") return <ErrorCard msg={part.errorText} />;
   if (part.state === "output-available") return <C {...part.output} />;
   return <C {...(part.input ?? {})} loading />; // partial args while streaming
 }
-function ChatContent() {
-  const { messages, sendMessage, status, stop } = useChat<ChatMessage>();
-  const [input, setInput] = useState("");
 
+function ChatContent() {
+  const {
+    messages,
+    sendMessage,
+    addToolApprovalResponse,
+    addToolOutput,
+    status,
+    stop,
+  } = useChat<ChatMessage>({
+    sendAutomaticallyWhen: ({ messages }) =>
+      lastAssistantMessageIsCompleteWithApprovalResponses({ messages }) ||
+      lastAssistantMessageIsCompleteWithToolCalls({ messages }),
+    async onToolCall({ toolCall }) {
+      if (toolCall.toolName === "getLocalTheme") {
+        addToolOutput({
+          tool: "getLocalTheme" as any,
+          toolCallId: toolCall.toolCallId,
+          output: (localStorage.getItem("theme") ?? "system") as any,
+        });
+      }
+    },
+  });
+
+  const [input, setInput] = useState("");
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Render nothing or a skeleton on the server/first render pass
   if (!isMounted) {
     return <div className="h-10 border rounded-md bg-muted/20 animate-pulse" />;
   }
@@ -63,7 +161,12 @@ function ChatContent() {
             <Message key={m.id} from={m.role === "user" ? "user" : "assistant"}>
               <MessageContent>
                 {m.parts.map((p, i) => (
-                  <PartRenderer key={i} part={p} />
+                  <PartRenderer
+                    key={i}
+                    part={p}
+                    addToolApprovalResponse={addToolApprovalResponse}
+                    addToolOutput={addToolOutput}
+                  />
                 ))}
               </MessageContent>
             </Message>
