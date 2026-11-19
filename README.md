@@ -6,6 +6,11 @@ This project demonstrates deterministic UI rendering from LLM tool calls, multi-
 
 ---
 
+## Running Live
+
+Open [Demo App](https://genui-lab-tau.vercel.app/)
+
+---
 ## ✨ Key Features
 
 - **Generative UI Component Registry (`PartRenderer`):** Maps typed AI message parts directly to React components (`WeatherCard`, `StatCard`, `DataTable`, `DashboardCard`, `ApprovalCard`) with real-time skeleton states during argument streaming.
