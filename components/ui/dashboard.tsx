@@ -6,7 +6,7 @@ import { DataTable } from "@/components/ui/dataTable";
 import { Streamdown } from "streamdown";
 
 interface Widget {
-  type: "stat" | "text" | "table";
+  type: "stat" | "text" | "table" | "markdown";
   label?: string;
   value?: string;
   delta?: string;
@@ -86,13 +86,13 @@ export function DashboardCard({
                   </Card>
                 );
 
-            case "markdown":
+              case "markdown":
                 return (
-                    <Card key={index} className="col-span-full bg-muted/30">
+                  <Card key={index} className="col-span-full bg-muted/30">
                     <CardContent className="pt-6">
-                        <Streamdown>{widget.markdown || ""}</Streamdown>
+                      <Streamdown>{widget.markdown || ""}</Streamdown>
                     </CardContent>
-                    </Card>
+                  </Card>
                 );
 
               default:

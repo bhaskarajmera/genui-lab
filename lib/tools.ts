@@ -121,6 +121,7 @@ export const askUser = tool({
     question: z.string().describe("The question to ask the user"),
     options: z.array(z.string()).describe("List of clickable choices"),
   }),
+  outputSchema: z.string(),
   // No execute function: pauses execution so the client can supply the output
 });
 

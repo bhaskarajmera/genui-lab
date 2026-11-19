@@ -4,7 +4,7 @@ import {
   type UIMessage,
   stepCountIs,
 } from "ai";
-import { google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import {
   askUser,
   getLocalTheme,
@@ -17,12 +17,15 @@ import {
 
 export const maxDuration = 30;
 
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+});
+
 export async function POST(req: Request) {
   try {
     const { messages }: { messages: UIMessage[] } = await req.json();
     console.log(process.env);
     const result = streamText({
-      apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
       model: google("gemini-3.5-flash-lite"), // use the current Flash id
       system: "You are a concise assistant.",
       messages: await convertToModelMessages(messages),

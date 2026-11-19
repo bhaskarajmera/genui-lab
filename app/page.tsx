@@ -2,6 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import {
+  ChatAddToolOutputFunction,
   lastAssistantMessageIsCompleteWithApprovalResponses,
   lastAssistantMessageIsCompleteWithToolCalls,
 } from "ai";
@@ -43,11 +44,7 @@ interface PartRendererProps {
     id: string;
     approved: boolean;
   }) => void;
-  addToolOutput: (output: {
-    tool: string;
-    toolCallId: string;
-    output: any;
-  }) => void;
+  addToolOutput: ChatAddToolOutputFunction<ChatMessage>;
 }
 
 export function PartRenderer({
